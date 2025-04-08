@@ -38,7 +38,7 @@ int count_token (char* buf, const char* delim)
 	strcpy(copy_buf, buf);
 	copy_buf[strlen(buf)] = '\0';
 
-	token = strtok_r(buf, delim, &ptr);
+	token = strtok_r(copy_buf, delim, &ptr);
 
 	while (token != NULL) {
 		count++;
@@ -46,7 +46,6 @@ int count_token (char* buf, const char* delim)
 	}
 
 	return count;
-
 }
 
 command_line str_filler (char* buf, const char* delim)
@@ -64,8 +63,64 @@ command_line str_filler (char* buf, const char* delim)
 	*	#6. return the variable.
 	*/
 
-	
+	// #1.	create command_line variable to be filled and returned
+	command_line res;
+	res.command_list = NULL;
+	res.num_token = 0;
 
+	if (buf == NULL) {
+        return res;
+    }
+
+	// #2.	count the number of tokens with count_token function, set num_token. 
+	res.num_token = count_token(buf, delim);
+
+	// #3. malloc memory for token array inside command_line variable based on the number of tokens.
+	res.command_list = malloc((res.num_token + 1) * sizeof(char*));
+    if (res.command_list == NULL) {
+        res.num_token = 0;
+        return res;
+    }
+
+	char* token; char* ptr; int i = 0;
+
+	char *copy_buf = (char *)malloc(sizeof(char) * strlen(buf) + 1);
+	strcpy(copy_buf, buf);
+	copy_buf[strlen(buf)] = '\0';
+
+	// #4.	use function strtok_r to find out the tokens 
+	token = strtok_r(copy_buf, delim, &ptr);
+
+	// #5. malloc each index of the array with the length of tokens, fill command_list array with tokens, and fill last spot with NULL.
+	while (token != NULL && i < res.num_token) {
+        size_t len = strlen(token);
+        if (len > 0 && token[len - 1] == '\n') {
+            token[len - 1] = '\0';
+            len--;
+        }
+		// #5. malloc each index of the array with the length of tokens
+		res.command_list[i] = malloc((len + 1) * sizeof(char));
+		if (res.command_list[i] == NULL) {
+            for (int j = 0; j < i; j++) {
+                free(res.command_list[j]);
+            }
+            free(res.command_list);
+            res.command_list = NULL;
+            res.num_token = 0;
+            return res;
+		}
+		
+		// fill command_list array with tokens
+		strcpy(res.command_list[i], token);
+		if (strlen(token) > 0) {
+			i++;
+		}
+        token = strtok_r(NULL, delim, &ptr);
+	}
+
+	// fill last spot with NULL.
+    res.command_list[i] = NULL;
+    return res;
 }
 
 
@@ -75,4 +130,12 @@ void free_command_line(command_line* command)
 	/*
 	*	#1.	free the array base num_token
 	*/
+
+	if (command == NULL || command->command_list == NULL) {
+		return; }
+	for (int i = 0; i < command->num_token; i++) {
+			free(command->command_list[i]);
+		}
+	free(command->command_list);
+
 }
